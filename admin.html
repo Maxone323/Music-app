@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin - Music Queue Control</title>
+    <link rel="stylesheet" href="style.css?v=3">
+    
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+</head>
+<body>
+    <!-- ตรวจสอบสิทธิ์ Admin -->
+    <script>
+        if (sessionStorage.getItem('adminAuthenticated') !== 'true') {
+            window.location.href = "index.html";
+        }
+    </script>
+
+    <div class="container">
+        <header class="app-header" style="justify-content: space-between;">
+            <div style="display: flex; align-items: center; gap: 8px;">
+                <div class="logo-icon">🎧</div>
+                <h1>Admin <span>Control</span></h1>
+            </div>
+            <button class="add-btn" style="background: rgba(255, 42, 95, 0.15); color: var(--accent); border-color: rgba(255, 42, 95, 0.3);" onclick="logoutAdmin()">🚪 ออกจากระบบ</button>
+        </header>
+
+        <!-- แสดงเพลงที่กำลังเล่นอยู่ -->
+        <div class="now-playing-card">
+            <div class="now-playing-tag">
+                <span class="eq-bar"></span>
+                <span class="eq-bar"></span>
+                <span class="eq-bar"></span>
+                <span id="adminNpStatus">กำลังเล่นเพลงอยู่</span>
+            </div>
+            <div class="now-playing-content" style="flex-direction: column; text-align: center; gap: 10px;">
+                <img id="adminNpCover" src="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='100' height='100' viewBox='0 0 100 100'><rect width='100%' height='100%' fill='%232a2d3d'/></svg>" alt="cover" style="width: 100px; height: 100px; border-radius: 16px;">
+                <div class="song-info">
+                    <div id="adminNpTitle" class="song-title" style="font-size: 15px; font-weight: 600;">ไม่มีเพลงกำลังเล่น</div>
+                    <div id="adminNpArtist" class="song-artist" style="margin-top: 4px;">-</div>
+                </div>
+                <div style="display: flex; gap: 8px; width: 100%; margin-top: 6px;">
+                    <button id="btnOpenYoutube" class="add-btn" style="flex: 1; background: rgba(255, 42, 95, 0.15); color: var(--accent); border-color: rgba(255, 42, 95, 0.3); padding: 10px;" onclick="openYoutube()">▶ เปิดฟังบน YouTube</button>
+                    <button class="add-btn" style="flex: 1; background: rgba(255, 255, 255, 0.1); color: #fff; border-color: var(--border); padding: 10px;" onclick="nextSong()">⏭ เพลงถัดไป</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="section-divider">
+            <span>การจัดการคิว</span>
+        </div>
+
+        <div class="queue-header">
+            <h2>📜 คิวเพลงที่รออยู่</h2>
+            <!-- เปลี่ยนจาก confirm() เดิม มาเรียกใช้ Custom Modal -->
+            <button class="add-btn" style="background: rgba(255, 77, 77, 0.15); color: #ff4d4d; border-color: rgba(255, 77, 77, 0.3); font-size: 11px; padding: 4px 10px;" onclick="openClearModal()">ล้างคิวทั้งหมด</button>
+        </div>
+
+        <div id="adminQueueList" class="queue-list"></div>
+    </div>
+
+    <!-- Modal สำหรับยืนยันการล้างคิว (Custom UI) -->
+    <div id="clearConfirmModal" class="modal-overlay">
+        <div class="modal-card" style="text-align: center;">
+            <div style="font-size: 36px; margin-bottom: 8px;">🗑️</div>
+            <h3 style="font-size: 18px; font-weight: 600; margin-bottom: 8px;">ยืนยันการล้างคิว?</h3>
+            <p class="modal-desc" style="margin-bottom: 20px;">คุณต้องการลบเพลงทั้งหมดออกจากรายการคิวใช่หรือไม่?</p>
+            
+            <div class="modal-actions">
+                <button class="btn-cancel" onclick="closeClearModal()">ยกเลิก</button>
+                <button class="btn-confirm" style="background: #ff4d4d;" onclick="confirmClearQueue()">ล้างคิวทั้งหมด</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="toast" class="toast"></div>
+
+    <script>
+        const firebaseConfig = {
+            apiKey: "AIzaSyC2G1uLEfuf9J1g-7B-ea5zttjWQnzobmE",
+            authDomain: "music-app-ce95f.firebaseapp.com",
+            databaseURL: "https://music-app-ce95f-default-rtdb.asia-southeast1.firebasedatabase.app",
+            projectId: "music-app-ce95f",
+            storageBucket: "music-app-ce95f.firebasestorage.app",
+            messagingSenderId: "957087797341",
+            appId: "1:957087797341:wab:e9710c7c5fb3678c31fdb4"
+        };
+        
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.database();
+        const queueRef = db.ref('musicQueue');
+
+        let currentQueue = [];
+        let currentYoutubeUrl = "";
+
+        function logoutAdmin() {
+            sessionStorage.removeItem('adminAuthenticated');
+            window.location.href = "index.html";
+        }
+
+        /* ฟังก์ชันเปิด-ปิด Custom Confirm Modal */
+        function openClearModal() {
+            if (currentQueue.length === 0) {
+                showToast("ไม่มีคิวเพลงให้ล้าง");
+                return;
+            }
+            document.getElementById('clearConfirmModal').classList.add('active');
+        }
+
+        function closeClearModal() {
+            document.getElementById('clearConfirmModal').classList.remove('active');
+        }
+
+        function confirmClearQueue() {
+            queueRef.remove().then(() => {
+                closeClearModal();
+                showToast("ล้างคิวเพลงทั้งหมดเรียบร้อยแล้ว");
+            }).catch(err => {
+                alert("เกิดข้อผิดพลาด: " + err.message);
+            });
+        }
+
+        function openYoutube() {
+            if (currentYoutubeUrl) {
+                window.open(currentYoutubeUrl, '_blank');
+            } else {
+                showToast("ไม่มีลิงก์เพลงที่กำลังเล่น");
+            }
+        }
+
+        function nextSong() {
+            if (currentQueue.length === 0) {
+                showToast("ไม่มีเพลงถัดไป");
+                return;
+            }
+            // ลบเพลงแรกออก
+            const firstSongKey = currentQueue[0].firebaseKey;
+            queueRef.child(firstSongKey).remove().then(() => {
+                showToast("เล่นเพลงถัดไปเรียบร้อย");
+            });
+        }
+
+        function deleteSong(key) {
+            queueRef.child(key).remove().then(() => {
+                showToast("ลบเพลงออกจากคิวเรียบร้อย");
+            });
+        }
+
+        queueRef.on('value', (snapshot) => {
+            const queueList = document.getElementById('adminQueueList');
+            const npTitle = document.getElementById('adminNpTitle');
+            const npArtist = document.getElementById('adminNpArtist');
+            const npCover = document.getElementById('adminNpCover');
+            const npStatus = document.getElementById('adminNpStatus');
+
+            queueList.innerHTML = '';
+            const data = snapshot.val();
+
+            if (!data) {
+                currentQueue = [];
+                currentYoutubeUrl = "";
+                npTitle.innerText = "ยังไม่มีเพลงที่เล่น";
+                npArtist.innerText = "-";
+                npCover.src = "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='100' height='100' viewBox='0 0 100 100'><rect width='100%' height='100%' fill='%232a2d3d'/></svg>";
+                npStatus.innerText = "ไม่มีเพลงเล่น";
+                queueList.innerHTML = '<p class="empty-msg">ไม่มีคิวเพลงในขณะนี้</p>';
+                return;
+            }
+
+            currentQueue = Object.keys(data).map(key => ({
+                firebaseKey: key,
+                ...data[key]
+            }));
+
+            // เพลงแรกคือเพลงที่กำลังเล่น
+            const nowPlaying = currentQueue[0];
+            npTitle.innerText = nowPlaying.title;
+            npArtist.innerText = nowPlaying.artist;
+            npCover.src = nowPlaying.cover;
+            npStatus.innerText = "กำลังเล่นเพลงอยู่";
+            currentYoutubeUrl = nowPlaying.youtubeUrl || `https://www.youtube.com/watch?v=${nowPlaying.videoId}`;
+
+            // รายการคิวรอ (ลำดับที่ 2 เป็นต้นไป)
+            const remainingQueue = currentQueue.slice(1);
+
+            if (remainingQueue.length === 0) {
+                queueList.innerHTML = '<p class="empty-msg">ไม่มีคิวเพลงรอถัดไป</p>';
+                return;
+            }
+
+            const fragment = document.createDocumentFragment();
+            remainingQueue.forEach((song, index) => {
+                const item = document.createElement('div');
+                item.className = 'queue-item';
+                item.innerHTML = `
+                    <div class="queue-num">${index + 1}</div>
+                    <img src="${song.cover}" alt="cover">
+                    <div class="song-info">
+                        <div class="song-title">${song.title}</div>
+                        <div class="song-artist">${song.artist}</div>
+                    </div>
+                    <button class="add-btn" style="background: rgba(255, 77, 77, 0.15); color: #ff4d4d; border-color: rgba(255, 77, 77, 0.3); padding: 6px 10px;" onclick="deleteSong('${song.firebaseKey}')">ลบ</button>
+                `;
+                fragment.appendChild(item);
+            });
+            queueList.appendChild(fragment);
+        });
+
+        function showToast(message) {
+            const toast = document.getElementById('toast');
+            toast.innerText = message;
+            toast.classList.add('show');
+            setTimeout(() => toast.classList.remove('show'), 2500);
+        }
+    </script>
+</body>
+</html>

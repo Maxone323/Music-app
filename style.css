@@ -1,0 +1,523 @@
+:root {
+    --bg-dark: #121318;
+    --card-bg: #1e2029;
+    --card-hover: #262936;
+    --accent: #ff2a5f;
+    --accent-hover: #ff4775;
+    --green: #00d26a;
+    --text-main: #ffffff;
+    --text-muted: #9499ad;
+    --border: rgba(255, 255, 255, 0.08);
+}
+
+/* ลบสีฟ้า/กรอบเรืองแสงเริ่มต้นเวลาแตะหรือคลิกทุกปุ่มบนมือถือและคอม */
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+    font-family: system-ui, -apple-system, sans-serif;
+    -webkit-tap-highlight-color: transparent;
+    outline: none !important;
+}
+
+*:focus, *:active {
+    outline: none !important;
+    box-shadow: none !important;
+}
+
+body {
+    background-color: var(--bg-dark);
+    color: var(--text-main);
+    min-height: 100vh;
+    padding: 24px 16px;
+    display: flex;
+    justify-content: center;
+}
+
+.container {
+    width: 100%;
+    max-width: 680px;
+    background: #181a20;
+    border-radius: 24px;
+    padding: 24px;
+    border: 1px solid var(--border);
+    box-shadow: 0 20px 40px rgba(0,0,0,0.5);
+}
+
+.app-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 20px;
+}
+
+.logo-icon {
+    font-size: 24px;
+    background: rgba(255, 42, 95, 0.15);
+    width: 45px;
+    height: 45px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 14px;
+}
+
+.app-header h1 {
+    font-size: 20px;
+    font-weight: 600;
+}
+
+.app-header h1 span {
+    color: var(--accent);
+    font-size: 14px;
+    background: rgba(255, 42, 95, 0.1);
+    padding: 2px 8px;
+    border-radius: 6px;
+    margin-left: 6px;
+}
+
+.search-box {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 20px;
+}
+
+input[type="text"] {
+    flex: 1;
+    background: var(--card-bg);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 12px 16px;
+    color: white;
+    font-size: 14px;
+}
+
+input[type="text"]:focus {
+    border-color: var(--accent);
+}
+
+button {
+    border: none;
+    outline: none;
+    cursor: pointer;
+    font-weight: 500;
+    border-radius: 14px;
+    transition: all 0.2s ease;
+    user-select: none;
+}
+
+button:hover {
+    opacity: 0.9;
+}
+
+button:active {
+    transform: scale(0.97);
+}
+
+.search-box button {
+    background: var(--accent);
+    color: white;
+    padding: 0 18px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+}
+
+/* --- Now Playing Card & Admin Controls UI --- */
+.now-playing-card {
+    background: var(--card-bg);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 18px;
+    margin-bottom: 20px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+}
+
+.now-playing-tag {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    font-size: 13px;
+    color: var(--accent);
+    margin-bottom: 14px;
+    font-weight: 500;
+    width: 100%;
+}
+
+.eq-bar {
+    width: 3px;
+    height: 12px;
+    background: var(--accent);
+    border-radius: 2px;
+    animation: eq 0.8s ease-in-out infinite alternate;
+}
+
+.eq-bar:nth-child(2) { animation-delay: 0.2s; }
+.eq-bar:nth-child(3) { animation-delay: 0.4s; }
+
+@keyframes eq {
+    0% { height: 4px; }
+    100% { height: 14px; }
+}
+
+.now-playing-content {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 14px;
+}
+
+.now-playing-content img {
+    width: 100% !important;
+    max-width: 380px !important;
+    height: auto !important;
+    aspect-ratio: 16 / 9;
+    border-radius: 14px;
+    object-fit: cover;
+    background: #2a2d3d;
+    box-shadow: 0 8px 20px rgba(0,0,0,0.4);
+    border: 1px solid var(--border);
+}
+
+.now-playing-content .song-info {
+    width: 100%;
+}
+
+.now-playing-content .song-title {
+    font-size: 16px;
+    font-weight: 600;
+    margin-bottom: 4px;
+}
+
+/* จัดสไตล์ปุ่มควบคุมฝั่ง Admin และกำจัดไฮไลต์สีฟ้า */
+.admin-controls {
+    display: flex;
+    gap: 10px;
+    width: 100%;
+    margin-top: 14px;
+}
+
+.admin-controls button, 
+.admin-controls a, 
+.btn-next, 
+.btn-open-yt {
+    flex: 1;
+    padding: 12px;
+    font-size: 14px;
+    border-radius: 12px;
+    text-decoration: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    font-weight: 500;
+    border: 1px solid var(--border);
+    transition: all 0.2s ease;
+}
+
+/* สไตล์ปุ่มเปิดเล่นบน YouTube */
+.btn-open-yt {
+    background: rgba(255, 42, 95, 0.15) !important;
+    color: var(--accent) !important;
+    border-color: rgba(255, 42, 95, 0.3) !important;
+}
+
+.btn-open-yt:hover {
+    background: rgba(255, 42, 95, 0.25) !important;
+}
+
+/* สไตล์ปุ่มเพลงถัดไป */
+.btn-next {
+    background: rgba(255, 255, 255, 0.08) !important;
+    color: #ffffff !important;
+}
+
+.btn-next:hover {
+    background: rgba(255, 255, 255, 0.15) !important;
+}
+
+/* --- Song Card & Queue Items --- */
+.song-card, .queue-item {
+    background: var(--card-bg);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 10px 14px;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    margin-bottom: 10px;
+}
+
+.song-card img, .queue-item img {
+    width: 60px;
+    height: 45px;
+    aspect-ratio: 16 / 9;
+    border-radius: 8px;
+    object-fit: cover;
+    background: #2a2d3d;
+    flex-shrink: 0;
+}
+
+.song-info {
+    flex: 1;
+    min-width: 0;
+    text-align: left;
+}
+
+.song-title {
+    font-size: 14px;
+    font-weight: 500;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.song-artist {
+    font-size: 12px;
+    color: var(--text-muted);
+    margin-top: 2px;
+}
+
+.add-btn {
+    background: rgba(0, 210, 106, 0.15);
+    color: var(--green);
+    border: 1px solid rgba(0, 210, 106, 0.3);
+    padding: 8px 14px;
+    font-size: 13px;
+    white-space: nowrap;
+}
+
+.section-divider {
+    display: flex;
+    align-items: center;
+    text-align: center;
+    color: var(--text-muted);
+    font-size: 12px;
+    margin: 24px 0 16px 0;
+}
+
+.section-divider::before, .section-divider::after {
+    content: '';
+    flex: 1;
+    border-bottom: 1px dashed var(--border);
+}
+
+.section-divider span {
+    padding: 0 10px;
+}
+
+.queue-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+}
+
+.queue-header h2 {
+    font-size: 16px;
+}
+
+.badge {
+    background: var(--card-bg);
+    padding: 4px 10px;
+    border-radius: 20px;
+    font-size: 12px;
+    color: var(--text-muted);
+    border: 1px solid var(--border);
+}
+
+.queue-num {
+    font-weight: 600;
+    color: var(--accent);
+    font-size: 14px;
+    width: 20px;
+    text-align: center;
+}
+
+.empty-msg {
+    text-align: center;
+    color: var(--text-muted);
+    font-size: 13px;
+    padding: 20px 0;
+}
+
+.loading {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    padding: 20px 0;
+    color: var(--text-muted);
+    font-size: 13px;
+}
+
+.spinner {
+    width: 18px;
+    height: 18px;
+    border: 2px solid var(--border);
+    border-top: 2px solid var(--accent);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+.toast {
+    position: fixed;
+    bottom: -60px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: #28a745;
+    color: white;
+    padding: 10px 20px;
+    border-radius: 30px;
+    font-size: 13px;
+    font-weight: 500;
+    box-shadow: 0 10px 20px rgba(0,0,0,0.3);
+    transition: bottom 0.3s ease;
+    z-index: 1000;
+}
+
+.toast.show {
+    bottom: 30px;
+}
+
+/* Custom Admin Modal UI */
+.modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.75);
+    backdrop-filter: blur(8px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 2000;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.25s ease, visibility 0.25s ease;
+    padding: 16px;
+}
+
+.modal-overlay.active {
+    opacity: 1;
+    visibility: visible;
+}
+
+.modal-card {
+    background: #1e2029;
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 24px;
+    width: 100%;
+    max-width: 360px;
+    box-shadow: 0 15px 35px rgba(0, 0, 0, 0.6);
+    transform: scale(0.9);
+    transition: transform 0.25s ease;
+    color: var(--text-main);
+}
+
+.modal-overlay.active .modal-card {
+    transform: scale(1);
+}
+
+.modal-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 6px;
+}
+
+.modal-header h3 {
+    font-size: 18px;
+    font-weight: 600;
+    color: #ffffff;
+}
+
+.modal-desc {
+    font-size: 13px;
+    color: var(--text-muted);
+    margin-bottom: 18px;
+}
+
+.password-wrapper {
+    position: relative;
+    display: flex;
+    align-items: center;
+    margin-bottom: 12px;
+    width: 100%;
+}
+
+.password-wrapper input[type="password"],
+.password-wrapper input[type="text"] {
+    width: 100%;
+    background: #121318;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 12px 42px 12px 14px;
+    color: #ffffff;
+    font-size: 14px;
+}
+
+.password-wrapper input:focus {
+    border-color: var(--accent);
+}
+
+.toggle-pwd-btn {
+    position: absolute;
+    right: 12px;
+    background: transparent;
+    border: none;
+    color: var(--text-muted);
+    font-size: 16px;
+    cursor: pointer;
+    padding: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: auto;
+    width: auto;
+}
+
+.modal-error {
+    color: #ff4d4d;
+    font-size: 12px;
+    margin-bottom: 14px;
+    display: none;
+}
+
+.modal-actions {
+    display: flex;
+    gap: 10px;
+    margin-top: 6px;
+}
+
+.modal-actions button {
+    flex: 1;
+    padding: 12px 0;
+    font-size: 14px;
+    border-radius: 12px;
+}
+
+.btn-cancel {
+    background: rgba(255, 255, 255, 0.08);
+    color: #fff;
+    border: 1px solid var(--border);
+}
+
+.btn-confirm {
+    background: var(--accent);
+    color: #fff;
+}

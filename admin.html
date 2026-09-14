@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin - Music Control Panel</title>
+    <link rel="stylesheet" href="style.css">
+    
+    <!-- นำเข้า Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+    
+    <style>
+        .order-btn {
+            background: rgba(255, 255, 255, 0.08);
+            color: #fff;
+            border: 1px solid var(--border);
+            padding: 4px 8px;
+            font-size: 12px;
+            border-radius: 8px;
+            cursor: pointer;
+        }
+        .order-btn:disabled {
+            opacity: 0.3;
+            cursor: not-allowed;
+        }
+        .action-group {
+            display: flex;
+            gap: 4px;
+            align-items: center;
+        }
+    </style>
+    <script>
+        if (sessionStorage.getItem('adminAuthenticated') !== 'true') {
+            alert('กรุณาเข้าสู่ระบบด้วยรหัสผ่านก่อนใช้งาน');
+            window.location.href = 'index.html';
+        }
+    </script>
+</head>
+<body>
+    <div class="container">
+        <header class="app-header" style="justify-content: space-between;">
+            <div style="display: flex; align-items: center; gap: 8px;">
+                <div class="logo-icon">🎧</div>
+                <h1>Admin <span>Control</span></h1>
+            </div>
+            <button class="add-btn" style="background: rgba(255, 77, 77, 0.15); color: #ff4d4d; border-color: rgba(255, 77, 77, 0.3); font-size: 12px;" onclick="logout()">🚪 ออกจากระบบ</button>
+        </header>
+
+        <div id="nowPlaying" class="song-card" style="flex-direction: column; text-align: center; padding: 20px; background: #1e2029;">
+            <div style="font-size: 13px; color: var(--accent); margin-bottom: 8px; font-weight: 600;">▶ กำลังเล่นเพลงอยู่</div>
+            
+            <img id="currentCover" src="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='140' height='140' viewBox='0 0 140 140'><rect width='100%' height='100%' fill='%232a2d3d'/><text x='50%' y='50%' fill='%23a0a0b8' dominant-baseline='middle' text-anchor='middle' font-family='sans-serif' font-size='14'>MUSIC</text></svg>" alt="cover" style="width: 140px; height: 140px; border-radius: 16px; margin: 0 auto 12px auto; object-fit: cover; box-shadow: 0 8px 20px rgba(0,0,0,0.4);">
+            
+            <div id="currentTitle" class="song-title" style="font-size: 16px; font-weight: 600;">ยังไม่มีการเลือกเพลง</div>
+            <div id="currentArtist" class="song-artist" style="font-size: 13px; color: var(--text-muted); margin-top: 4px;">-</div>
+            <div style="margin-top: 16px; display: flex; gap: 8px; justify-content: center;">
+                <a id="ytLink" href="#" target="_blank" style="text-decoration: none;">
+                    <button class="add-btn" style="background: rgba(255, 42, 95, 0.15); color: var(--accent); border-color: rgba(255, 42, 95, 0.3);">▶ เปิดฟังบน YouTube</button>
+                </a>
+                <button class="add-btn" style="background: rgba(255, 255, 255, 0.1); color: #fff; border-color: var(--border);" onclick="playNext()">⏭ เพลงถัดไป</button>
+            </div>
+        </div>
+
+        <div class="section-divider">
+            <span>การจัดการคิว</span>
+        </div>
+
+        <div class="queue-header">
+            <h2>📜 คิวเพลงที่รออยู่</h2>
+            <button class="add-btn" style="background: rgba(255, 77, 77, 0.15); color: #ff4d4d; border-color: rgba(255, 77, 77, 0.3); padding: 4px 10px; font-size: 12px;" onclick="clearQueue()">ล้างคิวทั้งหมด</button>
+        </div>
+        <div id="adminQueueList" class="queue-list"></div>
+    </div>
+
+    <script>
+        // -------------------------------------------------------------
+        // TODO: นำค่า firebaseConfig จาก Firebase Console มาวางตรงนี้เช่นกัน
+        // -------------------------------------------------------------
+        const firebaseConfig = {
+            apiKey: "AIzaSyC2G1uLEfuf9J1g-7B-ea5zttjWQnzobmE",
+            authDomain: "music-app-ce95f.firebaseapp.com",
+            databaseURL: "https://music-app-ce95f-default-rtdb.asia-southeast1.firebasedatabase.app",
+            projectId: "music-app-ce95f",
+            storageBucket: "music-app-ce95f.firebasestorage.app",
+            messagingSenderId: "957087797341",
+            appId: "1:957087797341:wab:e9710c7c5fb3678c31fdb4"
+        };
+        
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.database();
+        const queueRef = db.ref('musicQueue');
+
+        function logout() {
+            sessionStorage.removeItem('adminAuthenticated');
+            window.location.href = 'index.html';
+        }
+
+        const fallbackSvg = "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='100' height='100' viewBox='0 0 100 100'><rect width='100%' height='100%' fill='%232a2d3d'/><text x='50%' y='50%' fill='%23a0a0b8' dominant-baseline='middle' text-anchor='middle' font-family='sans-serif' font-size='12'>MUSIC</text></svg>";
+
+        let currentQueue = [];
+
+        // อัปเดตคิวฝั่ง Admin Real-time
+        queueRef.on('value', (snapshot) => {
+            const queueDiv = document.getElementById('adminQueueList');
+            queueDiv.innerHTML = '';
+            currentQueue = [];
+
+            const data = snapshot.val();
+            if (!data) {
+                queueDiv.innerHTML = '<p class="empty-msg">ไม่มีคิวเพลงค้างอยู่</p>';
+                return;
+            }
+
+            currentQueue = Object.keys(data).map(key => ({
+                firebaseKey: key,
+                ...data[key]
+            }));
+
+            const fragment = document.createDocumentFragment();
+            currentQueue.forEach((song, index) => {
+                const item = document.createElement('div');
+                item.className = 'queue-item';
+                const imgCover = song.cover || `https://i.ytimg.com/vi/${song.videoId}/hqdefault.jpg`;
+                
+                item.innerHTML = `
+                    <div class="queue-num">${index + 1}</div>
+                    <img src="${imgCover}" alt="cover" onerror="this.onerror=null;this.src='${fallbackSvg}'">
+                    <div class="song-info">
+                        <div class="song-title">${song.title}</div>
+                        <div class="song-artist">${song.artist}</div>
+                    </div>
+                    <div class="action-group">
+                        <button class="order-btn" onclick="moveQueue(${index}, -1)" ${index === 0 ? 'disabled' : ''}>⬆</button>
+                        <button class="order-btn" onclick="moveQueue(${index}, 1)" ${index === currentQueue.length - 1 ? 'disabled' : ''}>⬇</button>
+                        <button class="add-btn" style="padding: 6px 10px; font-size: 12px;" onclick="playSong(${index})">เล่น</button>
+                        <button class="add-btn" style="background: rgba(255, 77, 77, 0.15); color: #ff4d4d; border-color: rgba(255, 77, 77, 0.3); padding: 6px 10px; font-size: 12px;" onclick="deleteSong('${song.firebaseKey}')">ลบ</button>
+                    </div>
+                `;
+                fragment.appendChild(item);
+            });
+            queueDiv.appendChild(fragment);
+        });
+
+        function moveQueue(index, direction) {
+            const targetIndex = index + direction;
+            if (targetIndex >= 0 && targetIndex < currentQueue.length) {
+                const temp = currentQueue[index];
+                currentQueue[index] = currentQueue[targetIndex];
+                currentQueue[targetIndex] = temp;
+
+                // อัปเดตโครงสร้างใหม่ขึ้น Firebase
+                const updatedData = {};
+                currentQueue.forEach((item) => {
+                    updatedData[item.firebaseKey] = {
+                        title: item.title,
+                        artist: item.artist,
+                        cover: item.cover,
+                        videoId: item.videoId,
+                        youtubeUrl: item.youtubeUrl,
+                        timestamp: item.timestamp || Date.now()
+                    };
+                });
+                queueRef.set(updatedData);
+            }
+        }
+
+        function playSong(index) {
+            if (currentQueue[index]) {
+                const current = currentQueue[index];
+                document.getElementById('currentTitle').innerText = current.title;
+                document.getElementById('currentArtist').innerText = current.artist;
+                
+                const coverImg = document.getElementById('currentCover');
+                coverImg.src = current.cover || `https://i.ytimg.com/vi/${current.videoId}/hqdefault.jpg`;
+                coverImg.onerror = function() {
+                    this.onerror = null;
+                    this.src = fallbackSvg;
+                };
+
+                document.getElementById('ytLink').href = current.youtubeUrl;
+                window.open(current.youtubeUrl, '_blank');
+                
+                // ลบเพลงที่เล่นแล้วออกจาก Database
+                deleteSong(current.firebaseKey);
+            }
+        }
+
+        function playNext() {
+            if (currentQueue.length > 0) {
+                playSong(0);
+            } else {
+                alert('ไม่มีเพลงถัดไปในคิว');
+            }
+        }
+
+        function deleteSong(key) {
+            db.ref(`musicQueue/${key}`).remove();
+        }
+
+        function clearQueue() {
+            if (confirm('ต้องการล้างคิวเพลงทั้งหมดใช่หรือไม่?')) {
+                queueRef.remove();
+            }
+        }
+    </script>
+</body>
+</html>
